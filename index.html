@@ -850,12 +850,8 @@
             try {
                 libraryList.innerHTML = '<div class="empty-state"><p>Loading songs...</p></div>';
 
-                // Use CORS proxy to bypass cross-origin restrictions
-                const proxyUrl = 'https://corsproxy.io/?';
-                const targetUrl = encodeURIComponent(SHEETS_URL);
-                const fullUrl = proxyUrl + targetUrl;
-                
-                const response = await fetch(fullUrl);
+                // Direct fetch (no proxy needed on web servers like GitHub Pages)
+                const response = await fetch(SHEETS_URL);
                 
                 if (!response.ok) {
                     throw new Error('Failed to fetch sheet');
