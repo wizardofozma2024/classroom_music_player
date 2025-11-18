@@ -230,6 +230,74 @@
             background: rgba(255,255,255,0.5);
         }
 
+        /* Timer Display */
+        .timer-section {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .timer-section.active {
+            display: block;
+        }
+
+        .timer-display {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .timer-btn {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .timer-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        .timer-btn.active-timer {
+            background: rgba(255, 100, 100, 0.7);
+        }
+
+        /* Request Button */
+        .request-song-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .request-song-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
         .playlist-select {
             background: rgba(255,255,255,0.2);
             border: 2px solid rgba(255,255,255,0.3);
@@ -889,6 +957,29 @@
                 <span class="volume-icon" id="volumeIcon">🔊</span>
                 <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70" oninput="changeVolume()">
             </div>
+
+            <!-- Timer Section -->
+            <div class="timer-section" id="timerSection">
+                <div class="timer-display" id="timerDisplay">⏰ 0:00 remaining</div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="setTimer(5)">5 min</button>
+                    <button class="timer-btn" onclick="setTimer(10)">10 min</button>
+                    <button class="timer-btn" onclick="setTimer(15)">15 min</button>
+                    <button class="timer-btn" onclick="setTimer(20)">20 min</button>
+                    <button class="timer-btn" onclick="setTimer(30)">30 min</button>
+                    <button class="timer-btn active-timer" onclick="cancelTimer()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Timer Toggle Button -->
+            <button class="request-song-btn" onclick="toggleTimer()" style="margin-top: 15px;">
+                ⏰ Set Timer
+            </button>
+
+            <!-- Song Request Button -->
+            <button class="request-song-btn" onclick="openSongRequest()">
+                🎤 Request a Song
+            </button>
         </div>
 
         <!-- Current Playlist -->
@@ -971,8 +1062,17 @@
                 description: "New songs to the collection",
                 url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRsw-3Vw4hBz0_UuhFK8X6P0QaXeCWyUYEQ_vNyqZ-YvAMZspkcTV9HuUe7WsyeTwAVChOfetr9P1ho/pub?gid=790004733&single=true&output=csv",
                 emoji: "✨"
+            },
+            {
+                name: "Artist of the Month",
+                description: "Check this artist out",
+                url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRsw-3Vw4hBz0_UuhFK8X6P0QaXeCWyUYEQ_vNyqZ-YvAMZspkcTV9HuUe7WsyeTwAVChOfetr9P1ho/pub?output=csv",
+                emoji: "🎤"
             }
         ];
+        
+        // Song Request Form URL (you'll create this and replace the URL)
+        const SONG_REQUEST_FORM_URL = "https://forms.gle/PqCw7RBkKmHzTPdb6";
         
         // ============================================
         // STATE MANAGEMENT
@@ -1205,6 +1305,107 @@
             } catch (error) {
                 console.error('Error loading featured playlist:', error);
                 alert('Error loading playlist. Please try again.');
+            }
+        }
+
+        // ============================================
+        // TIMER FEATURE
+        // ============================================
+        let timerInterval = null;
+        let timerEndTime = null;
+
+        function toggleTimer() {
+            const timerSection = document.getElementById('timerSection');
+            timerSection.classList.toggle('active');
+        }
+
+        function setTimer(minutes) {
+            // Cancel existing timer if any
+            if (timerInterval) {
+                cancelTimer();
+            }
+
+            // Set end time
+            timerEndTime = Date.now() + (minutes * 60 * 1000);
+
+            // Update display immediately
+            updateTimerDisplay();
+
+            // Start interval
+            timerInterval = setInterval(() => {
+                const remaining = timerEndTime - Date.now();
+
+                if (remaining <= 0) {
+                    // Timer finished
+                    cancelTimer();
+                    fadeOutAndStop();
+                    showNotification('⏰ Timer finished! Music stopped.');
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+
+            showNotification(`⏰ Timer set for ${minutes} minutes`);
+        }
+
+        function updateTimerDisplay() {
+            if (!timerEndTime) return;
+
+            const remaining = Math.max(0, timerEndTime - Date.now());
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+
+            const display = `⏰ ${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+            document.getElementById('timerDisplay').textContent = display;
+        }
+
+        function cancelTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerEndTime = null;
+                document.getElementById('timerDisplay').textContent = '⏰ Timer cancelled';
+                showNotification('Timer cancelled');
+            }
+        }
+
+        function fadeOutAndStop() {
+            const originalVolume = audioPlayer.volume;
+            const fadeInterval = setInterval(() => {
+                if (audioPlayer.volume > 0.05) {
+                    audioPlayer.volume = Math.max(0, audioPlayer.volume - 0.05);
+                } else {
+                    clearInterval(fadeInterval);
+                    audioPlayer.pause();
+                    audioPlayer.volume = originalVolume;
+                    document.getElementById('playPauseBtn').textContent = '▶️';
+                }
+            }, 100);
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 15px 30px; border-radius: 10px; z-index: 10000; font-weight: 600;';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 2500);
+        }
+
+        // ============================================
+        // SONG REQUEST FEATURE
+        // ============================================
+        function openSongRequest() {
+            if (SONG_REQUEST_FORM_URL === "PASTE_YOUR_GOOGLE_FORM_URL_HERE") {
+                alert("Song request form not set up yet! Ask Mr. Lopez to add the form URL.");
+            } else {
+                window.open(SONG_REQUEST_FORM_URL, '_blank');
             }
         }
 
