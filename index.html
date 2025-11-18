@@ -176,7 +176,20 @@
         }
 
         .featured-grid.open {
-            max-height: 1000px;
+            max-height: 2000px;
+            overflow-y: auto;
+        }
+
+        /* Mobile: Make featured playlists scrollable and single column */
+        @media (max-width: 768px) {
+            .featured-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .featured-grid.open {
+                max-height: 600px;
+                overflow-y: auto;
+            }
         }
 
         .featured-card {
@@ -193,6 +206,26 @@
             background: rgba(255,255,255,0.3);
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Mobile: Better featured card sizing */
+        @media (max-width: 768px) {
+            .featured-card {
+                padding: 20px 15px;
+            }
+            
+            .featured-emoji {
+                font-size: 40px;
+            }
+            
+            .featured-name {
+                font-size: 16px;
+            }
+            
+            .featured-description {
+                font-size: 13px;
+                min-height: auto;
+            }
         }
 
         .featured-emoji {
