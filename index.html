@@ -1013,6 +1013,16 @@
             <button class="request-song-btn" onclick="openSongRequest()">
                 🎤 Request a Song
             </button>
+
+            <!-- Shuffle All Library Button -->
+            <button class="request-song-btn" onclick="shuffleAllLibrary()" style="background: rgba(255,200,100,0.3);">
+                🔀 Shuffle All Songs
+            </button>
+
+            <!-- Report Bug Button -->
+            <button class="request-song-btn" onclick="openBugReport()" style="background: rgba(255,100,100,0.2);">
+                🐛 Report a Bug
+            </button>
         </div>
 
         <!-- Current Playlist -->
@@ -1101,11 +1111,20 @@
                 description: "Check this artist out",
                 url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRsw-3Vw4hBz0_UuhFK8X6P0QaXeCWyUYEQ_vNyqZ-YvAMZspkcTV9HuUe7WsyeTwAVChOfetr9P1ho/pub?gid=1117676524&single=true&output=csv",
                 emoji: "🎤"
+            },
+            {
+                name: "Performance",
+                description: "Practice, practice, practice",
+                url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRsw-3Vw4hBz0_UuhFK8X6P0QaXeCWyUYEQ_vNyqZ-YvAMZspkcTV9HuUe7WsyeTwAVChOfetr9P1ho/pub?gid=716523935&single=true&output=csv",
+                emoji: "🎪"
             }
         ];
         
         // Song Request Form URL (you'll create this and replace the URL)
         const SONG_REQUEST_FORM_URL = "https://forms.gle/PqCw7RBkKmHzTPdb6";
+        
+        // Bug Report Form URL - using same form with different response section
+        const BUG_REPORT_FORM_URL = "https://forms.gle/PqCw7RBkKmHzTPdb6";
         
         // ============================================
         // STATE MANAGEMENT
@@ -1442,6 +1461,103 @@
             }
         }
 
+        function openBugReport() {
+            if (BUG_REPORT_FORM_URL === "PASTE_YOUR_GOOGLE_FORM_URL_HERE") {
+                alert("Bug report form not set up yet!");
+            } else {
+                window.open(BUG_REPORT_FORM_URL, '_blank');
+            }
+        }
+
+        async function shuffleAllLibrary() {
+            if (songDatabase.length === 0) {
+                showNotification('⏳ Loading song library...');
+                // Wait a bit for library to load
+                setTimeout(() => {
+                    if (songDatabase.length === 0) {
+                        showNotification('❌ Song library not loaded yet. Try again in a moment.');
+                    } else {
+                        shuffleAllLibrary();
+                    }
+                }, 2000);
+                return;
+            }
+
+            // Clear current playlist
+            const currentPlaylist = getCurrentPlaylist();
+            currentPlaylist.length = 0;
+
+            // Add all songs from database
+            songDatabase.forEach(song => {
+                currentPlaylist.push({
+                    title: song.title,
+                    artist: song.artist,
+                    url: song.url
+                });
+            });
+
+            // Shuffle the playlist
+            for (let i = currentPlaylist.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [currentPlaylist[i], currentPlaylist[j]] = [currentPlaylist[j], currentPlaylist[i]];
+            }
+
+            setCurrentPlaylist(currentPlaylist);
+            updatePlaylistDisplay();
+
+            // Auto-play first song
+            if (currentPlaylist.length > 0) {
+                playSong(0);
+            }
+
+            showNotification(`🔀 Shuffled ${currentPlaylist.length} songs from the library!`);
+        }
+
+        // ============================================
+        // MEDIA SESSION API (Lock Screen Controls)
+        // ============================================
+        function updateMediaSession() {
+            if ('mediaSession' in navigator) {
+                const currentPlaylist = getCurrentPlaylist();
+                if (currentSongIndex >= 0 && currentSongIndex < currentPlaylist.length) {
+                    const song = currentPlaylist[currentSongIndex];
+                    
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: song.title,
+                        artist: song.artist,
+                        album: allPlaylists[currentPlaylistId].name,
+                        artwork: [
+                            { src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎧</text></svg>', sizes: '96x96', type: 'image/svg+xml' }
+                        ]
+                    });
+
+                    navigator.mediaSession.setActionHandler('play', () => {
+                        audioPlayer.play();
+                        document.getElementById('playPauseBtn').textContent = '⏸';
+                    });
+
+                    navigator.mediaSession.setActionHandler('pause', () => {
+                        audioPlayer.pause();
+                        document.getElementById('playPauseBtn').textContent = '▶️';
+                    });
+
+                    navigator.mediaSession.setActionHandler('previoustrack', () => {
+                        previousSong();
+                    });
+
+                    navigator.mediaSession.setActionHandler('nexttrack', () => {
+                        nextSong();
+                    });
+
+                    navigator.mediaSession.setActionHandler('seekto', (details) => {
+                        if (details.seekTime) {
+                            audioPlayer.currentTime = details.seekTime;
+                        }
+                    });
+                }
+            }
+        }
+
         // ============================================
         // THEME MANAGEMENT
         // ============================================
@@ -1744,6 +1860,7 @@
             document.getElementById('playPauseBtn').textContent = '⏸';
             
             updatePlaylistDisplay();
+            updateMediaSession(); // Update lock screen controls and display
         }
 
         function togglePlay() {
